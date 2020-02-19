@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/bagus-aulia/pondok-lentera/config"
-	"github.com/bagus-aulia/pondok-lentera/models"
+	"github.com/bagus-aulia/pondok-sinau-golang/config"
+	"github.com/bagus-aulia/pondok-sinau-golang/models"
 	"github.com/danilopolani/gocialite/structs"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -71,21 +71,33 @@ func CallbackHandler(c *gin.Context) {
 		return
 	}
 
-	newAdmin := getOrRegister(provider, user)
-	jwtToken := createToken(&newAdmin)
+	if provider == "google" {
+		newMember := getOrRegisterMember(provider, user)
+		jwtToken := createTokenMember(&newMember)
 
-	c.JSON(200, gin.H{
-		"data":    newAdmin,
-		"token":   jwtToken,
-		"user":    user,
-		"message": "login success",
-	})
+		c.JSON(200, gin.H{
+			"data":    newMember,
+			"token":   jwtToken,
+			"user":    user,
+			"message": "login success",
+		})
+	} else {
+		newAdmin := getOrRegisterAdmin(provider, user)
+		jwtToken := createTokenAdmin(&newAdmin)
+
+		c.JSON(200, gin.H{
+			"data":    newAdmin,
+			"token":   jwtToken,
+			"user":    user,
+			"message": "login success",
+		})
+	}
 
 	// Print in terminal user information
 	// fmt.Printf("%#v", user)
 }
 
-func getOrRegister(provider string, admin *structs.User) models.Admin {
+func getOrRegisterAdmin(provider string, admin *structs.User) models.Admin {
 	var userData models.Admin
 	username := admin.Username
 
@@ -106,17 +118,62 @@ func getOrRegister(provider string, admin *structs.User) models.Admin {
 		}
 
 		config.DB.Create(&newAdmin)
-
 		return newAdmin
 	}
 
 	return userData
 }
 
-func createToken(user *models.Admin) string {
+func getOrRegisterMember(provider string, member *structs.User) models.Member {
+	var userData models.Member
+	username := member.Username
+
+	config.DB.Where("provider = ? AND social_id = ?", provider, member.ID).First(&userData)
+
+	if username == "" {
+		username = member.ID
+	}
+
+	if userData.ID == 0 {
+		newMember := models.Member{
+			FullName: member.FullName,
+			Username: username,
+			Email:    member.Email,
+			SocialID: member.ID,
+			Provider: provider,
+			Avatar:   member.Avatar,
+		}
+
+		config.DB.Create(&newMember)
+
+		return newMember
+	}
+
+	return userData
+}
+
+func createTokenAdmin(user *models.Admin) string {
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":   user.ID,
 		"user_role": user.IsAdmin,
+		"exp":       time.Now().AddDate(0, 0, 7).Unix(),
+		"iat":       time.Now().Unix(),
+	})
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := jwtToken.SignedString([]byte(os.Getenv("JWT_SECRET")))
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return tokenString
+}
+
+func createTokenMember(user *models.Member) string {
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id":   user.ID,
+		"user_role": "member",
 		"exp":       time.Now().AddDate(0, 0, 7).Unix(),
 		"iat":       time.Now().Unix(),
 	})

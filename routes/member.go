@@ -1,15 +1,15 @@
 package routes
 
 import (
-	"github.com/bagus-aulia/pondok-lentera/config"
-	"github.com/bagus-aulia/pondok-lentera/models"
+	"github.com/bagus-aulia/pondok-sinau-golang/config"
+	"github.com/bagus-aulia/pondok-sinau-golang/models"
 	"github.com/gin-gonic/gin"
 )
 
 //GetProfile to view list article
 func GetProfile(c *gin.Context) {
 	userID := uint(c.MustGet("jwt_user_id").(float64))
-	var user models.User
+	var user models.Member
 
 	transactions := config.DB.Where("id = ?", userID).Preload("Transactions", "member_id = ?", userID).Find(&user)
 
@@ -21,7 +21,7 @@ func GetProfile(c *gin.Context) {
 
 //MemberIndex to view member list
 func MemberIndex(c *gin.Context) {
-	var user models.User
+	var user models.Member
 	memberRole := false
 
 	members := config.DB.Where("role = ?", memberRole).Find(&user)
@@ -34,7 +34,7 @@ func MemberIndex(c *gin.Context) {
 
 //MemberProfile to view member detail
 func MemberProfile(c *gin.Context) {
-	var user models.User
+	var user models.Member
 	userID := c.Param("id")
 	memberRole := false
 

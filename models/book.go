@@ -7,7 +7,8 @@ import (
 //Book models
 type Book struct {
 	gorm.Model
-	Code      string `gorm:"unique_index"`
+	Detail    []Detail `gorm:"foreignkey:TransID"`
+	Code      string   `gorm:"unique_index"`
 	Title     string
 	Publisher string
 	Writer    string
