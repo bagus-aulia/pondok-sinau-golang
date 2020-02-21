@@ -43,6 +43,7 @@ func BookDetail(c *gin.Context) {
 
 //BookCreate to handle create new book
 func BookCreate(c *gin.Context) {
+	//upload image cover not ready
 	var lastBook models.Book
 	var codeBook string
 
@@ -78,6 +79,7 @@ func BookCreate(c *gin.Context) {
 
 //BookUpdate to handle update book
 func BookUpdate(c *gin.Context) {
+	//upload image cover not ready
 	id := c.Param("id")
 	var book models.Book
 

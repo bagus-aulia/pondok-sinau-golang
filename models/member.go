@@ -7,8 +7,8 @@ import (
 //Member models
 type Member struct {
 	gorm.Model
-	Transactions []Transaction
-	Username     string `gorm:"unique_index"`
+	Transactions []Transaction `gorm:"foreignkey:MemberID"`
+	Username     string        `gorm:"unique_index"`
 	FullName     string
 	Phone        string
 	Email        string `gorm:"unique_index"`

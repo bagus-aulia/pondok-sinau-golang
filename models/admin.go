@@ -7,8 +7,8 @@ import (
 //Admin models
 type Admin struct {
 	gorm.Model
-	Transactions []Transaction
-	Username     string `gorm:"unique_index"`
+	Transactions []Transaction `gorm:"foreignkey:AdminID"`
+	Username     string        `gorm:"unique_index"`
 	FullName     string
 	Email        string
 	SocialID     string

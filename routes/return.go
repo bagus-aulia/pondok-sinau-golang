@@ -10,20 +10,8 @@ import (
 func ReturnGet(c *gin.Context) {
 	transCode := c.Param("code")
 	var trans models.Transaction
-	// var books models.Book
 
-	// borrowLog := config.DB.Joins("JOIN detail_transactions ON detail_transactions.trans_id = transactions.id").Joins("JOIN admins ON admins.id = transactions.admin_id").Joins("JOIN members ON members.id = transactions.member_id").Joins("JOIN books ON books.id = detail_transactions.book_id AND books.code = ?", bookCode).First(&trans, "is_returned = ?", false)
-
-	// borrowLog := config.DB.Preload("Detail_transactions").Preload("Admins").Preload("Members").Preload("Books", "code = ?", bookCode).First(&trans, "is_returned = ?", false)
-
-	// borrowLog := config.DB.Preload("Details").Preload("Transactions", "code = ?", bookCode).Find(&books)
-
-	borrowLog := config.DB.Preload("Details").Find(&trans, "code = ?", transCode)
-
-	// var result models.All
-	// borrowLog := config.DB.Preload("Details").Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&result)
-
-	if borrowLog.RecordNotFound() {
+	if config.DB.Preload("Details").Preload("Details.Book").Preload("Admin").Preload("Member").Find(&trans, "code = ?", transCode).RecordNotFound() {
 		c.JSON(404, gin.H{
 			"status":  404,
 			"message": "Borrow log not found",
@@ -33,9 +21,33 @@ func ReturnGet(c *gin.Context) {
 		return
 	}
 
+	var details []detailInfo
+
+	for _, detailTrans := range trans.Details {
+		detailStruct := detailInfo{
+			ID:        detailTrans.ID,
+			BookID:    detailTrans.BookID,
+			BookCode:  detailTrans.Book.Code,
+			BookTitle: detailTrans.Book.Title,
+			BookCover: detailTrans.Book.Cover,
+			Fine:      detailTrans.Fine,
+			Note:      detailTrans.Note,
+		}
+
+		details = append(details, detailStruct)
+	}
+
 	c.JSON(200, gin.H{
-		"status": 200,
-		"data":   borrowLog,
+		"id":             trans.ID,
+		"code":           trans.Code,
+		"adminID":        trans.AdminID,
+		"adminUsername":  trans.Admin.Username,
+		"memberID":       trans.MemberID,
+		"memberUsername": trans.Member.Username,
+		"borrowDate":     trans.BorrowDate,
+		"returnDate":     trans.ReturnDate,
+		"isReturned":     trans.IsReturned,
+		"detail":         details,
 	})
 }
 

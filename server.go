@@ -17,8 +17,8 @@ func main() {
 
 	api := route.Group("/api/v1/")
 	{
-		api.GET("/", routes.Home)
-		api.GET("/dashboard", routes.Home)
+		// api.GET("/", routes.Home)
+		// api.GET("/dashboard", routes.Home)
 		api.GET("/auth/:provider", routes.RedirectHandler)          //done
 		api.GET("/auth/:provider/callback", routes.CallbackHandler) //done
 
@@ -26,20 +26,20 @@ func main() {
 
 		member := api.Group("/member")
 		{
-			member.GET("/", routes.MemberIndex)
-			member.GET("/profile/:id", routes.MemberProfile)
+			member.GET("/", routes.MemberIndex)                    //done
+			member.GET("/profile/:username", routes.MemberProfile) //done
 
-			member.POST("/", middleware.IsAuth(), routes.MemberIndex)
+			member.POST("/", middleware.IsAuth(), routes.MemberCreate) //done
 
-			member.PUT("/update/:id", routes.MemberProfile)
+			member.PUT("/update/:id", middleware.IsAuth(), routes.MemberUpdate) //done
 
-			member.DELETE("/delete/:id", middleware.IsAdmin(), routes.MemberIndex)
+			member.DELETE("/delete/:id", middleware.IsAuth(), routes.MemberDelete) //done
 		}
 
 		admin := api.Group("/admin")
 		{
-			admin.GET("/", routes.AdminIndex)              //done
-			admin.GET("/profile/:id", routes.AdminProfile) //minus show transactions too
+			admin.GET("/", routes.AdminIndex)                    //done
+			admin.GET("/profile/:username", routes.AdminProfile) //done
 
 			admin.PUT("/update/:id", middleware.IsAuth(), routes.AdminUpdate)           //done
 			admin.PUT("/toggle-role/:id", middleware.IsAdmin(), routes.AdminToggleRole) //done
@@ -50,30 +50,28 @@ func main() {
 			book.GET("/", routes.BookIndex)              //done
 			book.GET("/detail/:code", routes.BookDetail) //done
 
-			book.POST("/", middleware.IsAuth(), routes.BookCreate) // minus upload cover
+			book.POST("/", middleware.IsAuth(), routes.BookCreate) // done
 
-			book.PUT("/update/:id", middleware.IsAuth(), routes.BookUpdate) //minus update cover
+			book.PUT("/update/:id", middleware.IsAuth(), routes.BookUpdate) //done
 
 			book.DELETE("/delete/:id", middleware.IsAuth(), routes.BookDelete) //done
 		}
 
 		borrow := api.Group("/borrow")
 		{
-			borrow.GET("/", middleware.IsAuth(), routes.BorrowIndex)              //minus detail info
-			borrow.GET("/detail/:code", middleware.IsAuth(), routes.BorrowDetail) //minus detail info
+			borrow.GET("/", middleware.IsAuth(), routes.BorrowIndex)              //done
+			borrow.GET("/detail/:code", middleware.IsAuth(), routes.BorrowDetail) //done
 
-			borrow.POST("/", middleware.IsAuth(), routes.BorrowCreate) //minus save detail
+			borrow.POST("/", middleware.IsAuth(), routes.BorrowCreate) //not yet
 
-			borrow.PUT("/update/:id", middleware.IsAuth(), routes.BorrowUpdate) //minus update detail
+			borrow.PUT("/update/:id", middleware.IsAuth(), routes.BorrowUpdate) //not yet
 
-			borrow.DELETE("/delete/:id", middleware.IsAuth(), routes.BorrowDelete) //minus delete detail
+			borrow.DELETE("/delete/:id", middleware.IsAuth(), routes.BorrowDelete) //not checked
 		}
 
 		returns := api.Group("/return")
 		{
-			returns.GET("/get-borrow/:code", routes.ReturnGet) //belum dites
-
-			returns.PUT("/update/:id", middleware.IsAuth(), routes.MemberIndex) //minus update detail
+			returns.PUT("/update/:id", middleware.IsAuth(), routes.MemberIndex) //not yet
 
 			returns.PUT("/rollback/:id", middleware.IsAuth(), routes.ReturnGet) //concept
 		}

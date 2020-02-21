@@ -8,26 +8,40 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type adminInfo struct {
+	ID       uint
+	Username string
+	FullName string
+	Email    string
+	Avatar   string
+	IsAdmin  bool
+}
+
 //AdminIndex to show admin list
 func AdminIndex(c *gin.Context) {
 	admins := []models.Admin{}
+	var returnAdmin []adminInfo
 
 	config.DB.Find(&admins)
 
+	for _, admin := range admins {
+		dataAdmin := genAdminInfo(admin)
+
+		returnAdmin = append(returnAdmin, dataAdmin)
+	}
+
 	c.JSON(200, gin.H{
 		"status": 200,
-		"data":   admins,
+		"data":   returnAdmin,
 	})
 }
 
 //AdminProfile to show admin detail
 func AdminProfile(c *gin.Context) {
-	var user models.Admin
-	adminID := c.Param("id")
+	var admin models.Admin
+	username := c.Param("username")
 
-	admin := config.DB.First(&user, adminID)
-
-	if admin.RecordNotFound() {
+	if config.DB.First(&admin, "username = ?", username).RecordNotFound() {
 		c.JSON(404, gin.H{
 			"status":  404,
 			"message": "Account not found",
@@ -36,16 +50,22 @@ func AdminProfile(c *gin.Context) {
 		return
 	}
 
+	dataAdmin := genAdminInfo(admin)
+
 	c.JSON(200, gin.H{
 		"status": 200,
-		"data":   admin,
+		"data":   dataAdmin,
 	})
 }
 
 //AdminUpdate to update admin data
 func AdminUpdate(c *gin.Context) {
+	//upload image not ready
 	id := c.Param("id")
 	var admin models.Admin
+	var existAdmin models.Admin
+	username := c.PostForm("username")
+	email := c.PostForm("email")
 
 	if config.DB.First(&admin, id).RecordNotFound() {
 		c.JSON(404, gin.H{
@@ -67,14 +87,35 @@ func AdminUpdate(c *gin.Context) {
 		return
 	}
 
+	if !config.DB.Where("id <> ?", id).First(&existAdmin, "username = ?", username).RecordNotFound() {
+		c.JSON(303, gin.H{
+			"message": "Username already taken",
+		})
+
+		c.Abort()
+		return
+	}
+
+	if !config.DB.Where("id <> ?", id).First(&existAdmin, "email = ?", email).RecordNotFound() {
+		c.JSON(303, gin.H{
+			"message": "Email already taken",
+		})
+
+		c.Abort()
+		return
+	}
+
 	config.DB.Model(&admin).First(&admin, id).Updates(models.Admin{
 		Username: c.PostForm("username"),
 		FullName: c.PostForm("full_name"),
+		Email:    c.PostForm("email"),
 	})
+
+	dataAdmin := genAdminInfo(admin)
 
 	c.JSON(200, gin.H{
 		"message": "Account updated successfully",
-		"data":    admin,
+		"data":    dataAdmin,
 	})
 }
 
@@ -100,10 +141,23 @@ func AdminToggleRole(c *gin.Context) {
 		return
 	}
 
+	dataAdmin := genAdminInfo(admin)
+
 	c.JSON(200, gin.H{
 		"message": "Account toggled successfully",
-		"data":    admin,
+		"data":    dataAdmin,
 	})
 }
 
-//A
+func genAdminInfo(admin models.Admin) adminInfo {
+	dataAdmin := adminInfo{
+		ID:       admin.ID,
+		Username: admin.Username,
+		FullName: admin.FullName,
+		Email:    admin.Email,
+		Avatar:   admin.Avatar,
+		IsAdmin:  admin.IsAdmin,
+	}
+
+	return dataAdmin
+}

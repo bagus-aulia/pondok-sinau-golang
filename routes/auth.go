@@ -71,27 +71,27 @@ func CallbackHandler(c *gin.Context) {
 		return
 	}
 
-	if provider == "google" {
-		newMember := getOrRegisterMember(provider, user)
-		jwtToken := createTokenMember(&newMember)
+	// if provider == "google" {
+	// 	newMember := getOrRegisterMember(provider, user)
+	// 	jwtToken := createTokenMember(&newMember)
 
-		c.JSON(200, gin.H{
-			"data":    newMember,
-			"token":   jwtToken,
-			"user":    user,
-			"message": "login success",
-		})
-	} else {
-		newAdmin := getOrRegisterAdmin(provider, user)
-		jwtToken := createTokenAdmin(&newAdmin)
+	// 	c.JSON(200, gin.H{
+	// 		"data":    newMember,
+	// 		"token":   jwtToken,
+	// 		"user":    user,
+	// 		"message": "login success",
+	// 	})
+	// } else {
+	newAdmin := getOrRegisterAdmin(provider, user)
+	jwtToken := createTokenAdmin(&newAdmin)
 
-		c.JSON(200, gin.H{
-			"data":    newAdmin,
-			"token":   jwtToken,
-			"user":    user,
-			"message": "login success",
-		})
-	}
+	c.JSON(200, gin.H{
+		"data":    newAdmin,
+		"token":   jwtToken,
+		"user":    user,
+		"message": "login success",
+	})
+	// }
 
 	// Print in terminal user information
 	// fmt.Printf("%#v", user)
