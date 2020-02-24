@@ -1,6 +1,11 @@
 package routes
 
 import (
+	"io"
+	"math/rand"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/bagus-aulia/pondok-sinau-golang/config"
@@ -61,12 +66,44 @@ func BookCreate(c *gin.Context) {
 		codeBook = first + strconv.Itoa(lastInt)
 	}
 
+	file, header, err := c.Request.FormFile("cover")
+	newCoverName := ""
+
+	if err == nil {
+		dir, err := os.Getwd()
+		filename := header.Filename
+		extension := filepath.Ext(filename)
+		random := rand.Intn(401)
+
+		newCoverName = codeBook + "-" + strconv.Itoa(random) + extension
+		fileLocation := filepath.Join(dir, "storage/book", newCoverName)
+
+		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+
+		defer targetFile.Close()
+
+		if _, err := io.Copy(targetFile, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+	}
+
 	book := models.Book{
 		Code:      codeBook,
 		Title:     c.PostForm("title"),
 		Publisher: c.PostForm("publisher"),
 		Writer:    c.PostForm("writer"),
 		Desc:      c.PostForm("desc"),
+		Cover:     newCoverName,
 	}
 
 	config.DB.Create(&book)
@@ -79,7 +116,6 @@ func BookCreate(c *gin.Context) {
 
 //BookUpdate to handle update book
 func BookUpdate(c *gin.Context) {
-	//upload image cover not ready
 	id := c.Param("id")
 	var book models.Book
 
@@ -93,11 +129,46 @@ func BookUpdate(c *gin.Context) {
 		return
 	}
 
+	file, header, err := c.Request.FormFile("cover")
+	newCoverName := book.Cover
+
+	if err == nil {
+		dir, err := os.Getwd()
+		fileLocation := filepath.Join(dir, "storage/book", newCoverName)
+		err = os.Remove(fileLocation)
+
+		filename := header.Filename
+		extension := filepath.Ext(filename)
+		random := rand.Intn(401)
+
+		newCoverName = book.Code + "-" + strconv.Itoa(random) + extension
+		fileLocation = filepath.Join(dir, "storage/book", newCoverName)
+
+		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+
+		defer targetFile.Close()
+
+		if _, err := io.Copy(targetFile, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+	}
+
 	config.DB.Model(&book).First(&book, id).Updates(models.Book{
 		Title:     c.PostForm("title"),
 		Publisher: c.PostForm("publisher"),
 		Writer:    c.PostForm("writer"),
 		Desc:      c.PostForm("desc"),
+		Cover:     newCoverName,
 	})
 
 	c.JSON(200, gin.H{

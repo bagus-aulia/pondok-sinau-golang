@@ -41,7 +41,7 @@ func main() {
 			admin.GET("/", routes.AdminIndex)                    //done
 			admin.GET("/profile/:username", routes.AdminProfile) //done
 
-			admin.PUT("/update/:id", middleware.IsAuth(), routes.AdminUpdate)           //done
+			admin.PUT("/update/:id", middleware.IsAuth(), routes.AdminUpdate)           //
 			admin.PUT("/toggle-role/:id", middleware.IsAdmin(), routes.AdminToggleRole) //done
 		}
 
@@ -50,7 +50,7 @@ func main() {
 			book.GET("/", routes.BookIndex)              //done
 			book.GET("/detail/:code", routes.BookDetail) //done
 
-			book.POST("/", middleware.IsAuth(), routes.BookCreate) // done
+			book.POST("/", middleware.IsAuth(), routes.BookCreate) //done
 
 			book.PUT("/update/:id", middleware.IsAuth(), routes.BookUpdate) //done
 
@@ -62,18 +62,16 @@ func main() {
 			borrow.GET("/", middleware.IsAuth(), routes.BorrowIndex)              //done
 			borrow.GET("/detail/:code", middleware.IsAuth(), routes.BorrowDetail) //done
 
-			borrow.POST("/", middleware.IsAuth(), routes.BorrowCreate) //not yet
+			borrow.POST("/", middleware.IsAuth(), routes.BorrowCreate) //done
 
-			borrow.PUT("/update/:id", middleware.IsAuth(), routes.BorrowUpdate) //not yet
+			borrow.PUT("/update/:id", middleware.IsAuth(), routes.BorrowUpdate) //done
 
-			borrow.DELETE("/delete/:id", middleware.IsAuth(), routes.BorrowDelete) //not checked
+			borrow.DELETE("/delete/:id", middleware.IsAuth(), routes.BorrowDelete) //done
 		}
 
 		returns := api.Group("/return")
 		{
-			returns.PUT("/update/:id", middleware.IsAuth(), routes.MemberIndex) //not yet
-
-			returns.PUT("/rollback/:id", middleware.IsAuth(), routes.ReturnGet) //concept
+			returns.PUT("/update/:id", middleware.IsAuth(), routes.Return) //done
 		}
 	}
 

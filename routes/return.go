@@ -1,58 +1,16 @@
 package routes
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/bagus-aulia/pondok-sinau-golang/config"
 	"github.com/bagus-aulia/pondok-sinau-golang/models"
 	"github.com/gin-gonic/gin"
 )
 
-//ReturnGet to show borrow data by book code
-func ReturnGet(c *gin.Context) {
-	transCode := c.Param("code")
-	var trans models.Transaction
-
-	if config.DB.Preload("Details").Preload("Details.Book").Preload("Admin").Preload("Member").Find(&trans, "code = ?", transCode).RecordNotFound() {
-		c.JSON(404, gin.H{
-			"status":  404,
-			"message": "Borrow log not found",
-		})
-
-		c.Abort()
-		return
-	}
-
-	var details []detailInfo
-
-	for _, detailTrans := range trans.Details {
-		detailStruct := detailInfo{
-			ID:        detailTrans.ID,
-			BookID:    detailTrans.BookID,
-			BookCode:  detailTrans.Book.Code,
-			BookTitle: detailTrans.Book.Title,
-			BookCover: detailTrans.Book.Cover,
-			Fine:      detailTrans.Fine,
-			Note:      detailTrans.Note,
-		}
-
-		details = append(details, detailStruct)
-	}
-
-	c.JSON(200, gin.H{
-		"id":             trans.ID,
-		"code":           trans.Code,
-		"adminID":        trans.AdminID,
-		"adminUsername":  trans.Admin.Username,
-		"memberID":       trans.MemberID,
-		"memberUsername": trans.Member.Username,
-		"borrowDate":     trans.BorrowDate,
-		"returnDate":     trans.ReturnDate,
-		"isReturned":     trans.IsReturned,
-		"detail":         details,
-	})
-}
-
-//ReturnUpdate to handle book return
-func ReturnUpdate(c *gin.Context) {
+//Return to handle book return
+func Return(c *gin.Context) {
 	id := c.Param("id")
 	var borrow models.Transaction
 
@@ -66,14 +24,57 @@ func ReturnUpdate(c *gin.Context) {
 		return
 	}
 
+	if borrow.IsReturned {
+		c.JSON(403, gin.H{
+			"message": "Book has been returned. Cannot process return",
+		})
+
+		c.Abort()
+		return
+	}
+
 	config.DB.Model(&borrow).First(&borrow, id).Updates(models.Transaction{
 		IsReturned: true,
 	})
 
-	//update detail data
+	detailIDs := c.PostFormArray("detail_id[]")
+	bookIDs := c.PostFormArray("book_id[]")
+	fines := c.PostFormArray("fine[]")
+	notes := c.PostFormArray("note[]")
+
+	for i, detailID := range detailIDs {
+		var detail models.Detail
+		var book models.Book
+
+		fine, _ := strconv.Atoi(fines[i])
+
+		config.DB.Model(&detail).First(&detail, detailID).Updates(models.Detail{
+			Fine: int32(fine),
+			Note: notes[i],
+		})
+
+		if err := config.DB.Model(&book).First(&book, bookIDs[i]).Updates(map[string]interface{}{
+			"Status": false,
+		}).Error; err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	var newBorrow models.Transaction
+
+	config.DB.Preload("Details").Preload("Details.Book").Preload("Admin").Preload("Member").First(&newBorrow, id)
+
+	dataBorrow := genBorrowInfo(newBorrow)
+
+	for _, newDetail := range newBorrow.Details {
+		dataDetail := genDetailBorrowInfo(newDetail)
+
+		dataBorrow.Detail = append(dataBorrow.Detail, dataDetail)
+	}
 
 	c.JSON(200, gin.H{
 		"message": "Book has been returned",
-		"data":    borrow,
+		"data":    dataBorrow,
 	})
 }

@@ -1,0 +1,7 @@
+gopkg.in/danilopolani/gocialite.v1
+github.com/danilopolani/gocialite/structs
+github.com/dgrijalva/jwt-go
+github.com/gin-gonic/gin
+github.com/gosimple/slug
+github.com/jinzhu/gorm
+github.com/subosito/gotenv

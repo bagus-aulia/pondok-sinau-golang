@@ -1,6 +1,13 @@
 package routes
 
 import (
+	"io"
+	"math/rand"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"github.com/bagus-aulia/pondok-sinau-golang/config"
 	"github.com/bagus-aulia/pondok-sinau-golang/models"
 	"github.com/gin-gonic/gin"
@@ -90,7 +97,6 @@ func MemberProfile(c *gin.Context) {
 
 //MemberCreate to create new member
 func MemberCreate(c *gin.Context) {
-	//upload image not ready
 	var existMember models.Member
 	username := slug.Make(c.PostForm("full_name"))
 	email := c.PostForm("email")
@@ -113,12 +119,44 @@ func MemberCreate(c *gin.Context) {
 		return
 	}
 
+	file, header, err := c.Request.FormFile("avatar")
+	newAvatarName := ""
+
+	if err == nil {
+		dir, err := os.Getwd()
+		filename := header.Filename
+		extension := filepath.Ext(filename)
+		random := rand.Intn(401)
+
+		newAvatarName = username + "-" + strconv.Itoa(random) + extension
+		fileLocation := filepath.Join(dir, "storage/member", newAvatarName)
+
+		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+
+		defer targetFile.Close()
+
+		if _, err := io.Copy(targetFile, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+	}
+
 	member := models.Member{
 		Username: slug.Make(c.PostForm("full_name")),
 		FullName: c.PostForm("full_name"),
 		Phone:    c.PostForm("phone"),
 		Email:    c.PostForm("email"),
 		Address:  c.PostForm("address"),
+		Avatar:   newAvatarName,
 	}
 
 	config.DB.Create(&member)
@@ -133,7 +171,6 @@ func MemberCreate(c *gin.Context) {
 
 //MemberUpdate to update member data
 func MemberUpdate(c *gin.Context) {
-	//upload image not ready
 	id := c.Param("id")
 	var member models.Member
 	var existMember models.Member
@@ -168,12 +205,51 @@ func MemberUpdate(c *gin.Context) {
 		return
 	}
 
+	file, header, err := c.Request.FormFile("avatar")
+	newAvatarName := member.Avatar
+
+	if username == "" {
+		username = member.Username
+	}
+
+	if err == nil {
+		dir, err := os.Getwd()
+		fileLocation := filepath.Join(dir, "storage/member", newAvatarName)
+		err = os.Remove(fileLocation)
+
+		filename := header.Filename
+		extension := filepath.Ext(filename)
+		random := rand.Intn(401)
+
+		newAvatarName = username + "-" + strconv.Itoa(random) + extension
+		fileLocation = filepath.Join(dir, "storage/member", newAvatarName)
+
+		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+
+		defer targetFile.Close()
+
+		if _, err := io.Copy(targetFile, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+	}
+
 	config.DB.Model(&member).First(&member, id).Updates(models.Member{
-		Username: c.PostForm("username"),
+		Username: username,
 		FullName: c.PostForm("full_name"),
 		Phone:    c.PostForm("phone"),
 		Email:    c.PostForm("email"),
 		Address:  c.PostForm("address"),
+		Avatar:   newAvatarName,
 	})
 
 	dataMember := genMemberInfo(member)

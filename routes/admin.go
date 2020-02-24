@@ -2,6 +2,12 @@ package routes
 
 import (
 	"fmt"
+	"io"
+	"math/rand"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/bagus-aulia/pondok-sinau-golang/config"
 	"github.com/bagus-aulia/pondok-sinau-golang/models"
@@ -105,10 +111,45 @@ func AdminUpdate(c *gin.Context) {
 		return
 	}
 
+	file, header, err := c.Request.FormFile("avatar")
+	newAvatarName := admin.Avatar
+
+	if err == nil {
+		dir, err := os.Getwd()
+		fileLocation := filepath.Join(dir, "storage/admin", newAvatarName)
+		err = os.Remove(fileLocation)
+
+		filename := header.Filename
+		extension := filepath.Ext(filename)
+		random := rand.Intn(401)
+
+		newAvatarName = admin.Username + "-" + strconv.Itoa(random) + extension
+		fileLocation = filepath.Join(dir, "storage/admin", newAvatarName)
+
+		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+
+		defer targetFile.Close()
+
+		if _, err := io.Copy(targetFile, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err,
+				"note":    "error uploading image",
+			})
+		}
+	}
+
 	config.DB.Model(&admin).First(&admin, id).Updates(models.Admin{
 		Username: c.PostForm("username"),
 		FullName: c.PostForm("full_name"),
 		Email:    c.PostForm("email"),
+		Avatar:   newAvatarName,
 	})
 
 	dataAdmin := genAdminInfo(admin)

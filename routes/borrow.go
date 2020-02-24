@@ -89,8 +89,6 @@ func BorrowDetail(c *gin.Context) {
 
 //BorrowCreate to handle create borrow
 func BorrowCreate(c *gin.Context) {
-	//need improvement
-	//check return date saved or not
 	var lastBorrow models.Transaction
 	var codeBorrow string
 
@@ -110,9 +108,18 @@ func BorrowCreate(c *gin.Context) {
 
 	memberID, _ := strconv.ParseUint(c.PostForm("member_id"), 10, 32)
 
-	layoutDate := "2020-02-14 18:52:17"
 	returnDt := c.PostForm("return_date")
-	returnDate, _ := time.Parse(layoutDate, returnDt)
+	returnDate, err := time.Parse(time.RFC3339, returnDt)
+
+	if err != nil {
+		c.JSON(403, gin.H{
+			"error":   "Error parsing date",
+			"message": err,
+		})
+
+		c.Abort()
+		return
+	}
 
 	borrow := models.Transaction{
 		Code:       codeBorrow,
@@ -128,10 +135,22 @@ func BorrowCreate(c *gin.Context) {
 	for _, bookCode := range details {
 		var book models.Book
 
-		if config.DB.First(&book, "code = ?", bookCode).RecordNotFound() {
-			fmt.Println("error")
-			continue
+		if config.DB.First(&book, "code = ? AND status = ?", bookCode, false).RecordNotFound() {
+			borrowID := borrow.ID
+
+			config.DB.First(&borrow, borrowID).Delete(&borrow)
+
+			c.JSON(403, gin.H{
+				"message": "Book borrowed",
+			})
+
+			c.Abort()
+			return
 		}
+
+		config.DB.Model(&book).First(&book, "code = ?", bookCode).Updates(models.Book{
+			Status: true,
+		})
 
 		detail := models.Detail{
 			TransID: borrow.ID,
@@ -161,8 +180,6 @@ func BorrowCreate(c *gin.Context) {
 //BorrowUpdate will handle update borrow log
 func BorrowUpdate(c *gin.Context) {
 	//need improvement
-	//check update detail
-	//check return date saved or not
 	id := c.Param("id")
 	var borrow models.Transaction
 
@@ -178,9 +195,18 @@ func BorrowUpdate(c *gin.Context) {
 
 	memberID, _ := strconv.ParseUint(c.PostForm("member_id"), 10, 32)
 
-	layoutDate := "2020-02-14 18:55:41"
 	returnDt := c.PostForm("return_date")
-	returnDate, _ := time.Parse(layoutDate, returnDt)
+	returnDate, err := time.Parse(time.RFC3339, returnDt)
+
+	if err != nil {
+		c.JSON(403, gin.H{
+			"error":   "Error parsing date",
+			"message": err,
+		})
+
+		c.Abort()
+		return
+	}
 
 	config.DB.Model(&borrow).First(&borrow, id).Updates(models.Transaction{
 		MemberID:   uint(memberID),
@@ -218,7 +244,7 @@ func BorrowUpdate(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"message": "Borrow log has been updated",
-		"data":    borrow,
+		"data":    newBorrow,
 	})
 }
 
@@ -226,9 +252,8 @@ func BorrowUpdate(c *gin.Context) {
 func BorrowDelete(c *gin.Context) {
 	id := c.Param("id")
 	var borrow models.Transaction
-	borrowLog := config.DB.First(&borrow, id)
 
-	if borrowLog.RecordNotFound() {
+	if config.DB.Preload("Details").First(&borrow, id).RecordNotFound() {
 		c.JSON(404, gin.H{
 			"status":  404,
 			"message": "Borrow log not found",
@@ -238,9 +263,13 @@ func BorrowDelete(c *gin.Context) {
 		return
 	}
 
-	borrowLog.Delete(&borrow)
+	for _, detailData := range borrow.Details {
+		var detail models.Detail
+		fmt.Println(detailData.ID)
+		config.DB.First(&detail, detailData.ID).Delete(&detail)
+	}
 
-	//delete detail data
+	config.DB.First(&borrow, id).Delete(&borrow)
 
 	c.JSON(200, gin.H{
 		"message": "Borrow log has been deleted",
