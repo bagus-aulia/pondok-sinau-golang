@@ -34,14 +34,14 @@ $ go get github.com/jinzhu/gorm
 
 [Documentation](https://gorm.io/docs/index.html)
 
-### 4. [Gocialite by danilopolani](https://github.com/jinzhu/gorm)
+### 5. [Gocialite by danilopolani](https://github.com/jinzhu/gorm)
 
 Gocialite used to manage social oAuth authentication. This library available for Amazon, Asana, Bitbucket, Facebook, Foursquare, Github, Google, LinkedIn or Slack account. To add this library to your PC, run this command in terminal:
 <pre>
 $ go get gopkg.in/danilopolani/gocialite.v1
 </pre>
 
-### 5. [Slug by gosimple](https://github.com/gosimple/slug)
+### 6. [Slug by gosimple](https://github.com/gosimple/slug)
 
 Package slug generate slug from unicode string, URL-friendly slugify with multiple languages support. Used to generate username if its blank. To add this library to your PC, run this command in terminal:
 <pre>
